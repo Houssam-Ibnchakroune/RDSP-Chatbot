@@ -1,175 +1,232 @@
 # RDSP-Chatbot
 
-Un mini-chatbot éducatif combinant **NLP sous Jupyter Notebook** et **interface web statique** (HTML/CSS/JS).  
-Objectif : prototyper rapidement des logiques de compréhension de questions et de génération de réponses, puis les exposer via une interface simple.
+Assistant éducatif sur le **Régime Enregistré d’Épargne-Invalidité (RDSP)**, composé d’un **prototype NLP dans un Notebook** et de **front-ends web statiques**.  
+Le but est de prototyper rapidement la compréhension de questions et la génération de réponses, puis de les exposer via une interface simple.
 
-> ⚠️ Ce dépôt est un POC (proof-of-concept) pédagogique : l’inférence principale vit dans le notebook `main.ipynb`, et l’interface web (`chat interface.html`, `script.js`, `styles.css`) est fournie pour des démos locales.
+> ℹ️ **POC pédagogique** : la logique NLP réside dans `main.ipynb`. Deux interfaces front-end coexistent :
+> 1) un **single-file** riche (`chat interface.html`, styles/JS inclus),  
+> 2) une **version modulaire** (`styles.css` + `script.js`) prête à intégrer à un `index.html` minimal.
 
 ---
 
-## 🧭 Aperçu
-
-- **Notebook principal** : `main.ipynb` (prétraitement, intentions/réponses, logique de génération, évaluations).
-- **Front-end** : `chat interface.html` + `styles.css` + `script.js` (UI de chat locale).
-- **Ressource** : `reei.pdf` (document de référence / support).
-- **Langages** : Jupyter Notebook, HTML, CSS, JavaScript.
+## 🗂️ Structure
 
 ```
 RDSP-Chatbot/
-├─ main.ipynb
-├─ chat interface.html
-├─ script.js
-├─ styles.css
-├─ reei.pdf
+├─ main.ipynb                # Notebook: data prep, logique QA, tests
+├─ chat interface.html       # UI complète (sidebar, multi-discussions, thème)
+├─ script.js                 # UI minimaliste FR/EN + suggestions + API
+├─ styles.css                # Styles de la version minimaliste
 └─ README.md
 ```
 
 ---
 
-## 🚀 Démo rapide (local)
+## ✨ Fonctionnalités clés
 
-### etape A — Exécuter la logique NLP dans le notebook
-
-1. Créer un environnement Python puis lancer Jupyter :
-
-    ```bash
-    python -m venv .venv
-    .venv\Scripts\activate        # Windows
-    # source .venv/bin/activate   # Linux/Mac
-    pip install -U pip jupyter
-    jupyter notebook
-    ```
-
-2. Ouvrir `main.ipynb` et exécuter les cellules (prétraitement → modèle → génération).
-
-> Astuce : itérer dans le notebook jusqu’à obtenir une fonction `answer(question: str) -> str`. La section **Intégration API (optionnel)** ci-dessous montre comment l’exposer à l’interface web.
-
-### etape B —  l’interface (maquette)
-
-1. Ouvrir `chat interface.html` dans votre navigateur.
-2. Les messages s’affichent côté client. 
----
-
-## 🧱 Prérequis & Installation
-
-**Python**
-
-- Recommandé : **Python 3.10+**
-
-## 🧠 Fonctionnalités (POC)
-
-- Chargement et nettoyage de données d’exemple (intents/FAQ/domain data).
-- Vectorisation /  embeddings .
-- Baseline de compréhension (ex. classification d’intentions, similarité).
-- Génération de réponses simple (règles / retrieval / heuristiques).
-- Interface web minimale pour la démonstration.
-
-> Le cœur métier se trouve dans `main.ipynb`. Il peut :
-> - entraîner/charger un modèle léger,
-> - appliquer une stratégie de recherche (FAQ / réponses prêtes),
-> - renvoyer du texte final.
+- **Deux UI au choix**
+  - **Riche (single-file)** : sidebar, **multi-discussions** (renommer/supprimer/copier), **thème sombre/clair**, **FAQ cliquables**, **indicateur de saisie**, requêtes vers une **API `/api/chat`**. :contentReference[oaicite:0]{index=0}
+  - **Minimaliste (modulaire)** : **bilingue FR/EN** (toggle), zone de **suggestions** pré-remplies, envoi à l’API `/api/chat`. :contentReference[oaicite:1]{index=1} :contentReference[oaicite:2]{index=2}
+- **Contrat API simple** (POST JSON) :  
+  Requête `{ "question": "<texte>", "lang": "fr|en" (optionnel) }` → Réponse `{ "response": "<texte>" }`. :contentReference[oaicite:3]{index=3} :contentReference[oaicite:4]{index=4}
+- **UX** : messages animés, responsive, mémorisation du thème (localStorage), copier la conversation.
 
 ---
 
-## 🧩 Intégration API (optionnel)
+## 🚀 Prise en main rapide
 
-Si vous souhaitez connecter l’UI web à une logique Python en local, voici un **exemple minimal FastAPI** :
+### Option A — Ouvrir l’UI « single-file »
+1. Ouvrir **`chat interface.html`** directement dans votre navigateur.  
+2. Mettre à jour l’URL du backend si besoin (voir **Configuration API**).
+
+### Option B — Lancer l’UI « modulaire »
+1. Créer un `index.html` minimal (exemple ci-dessous) qui référence `styles.css` et `script.js`.  
+2. Servir localement (ex. `python -m http.server 5500`) et ouvrir l’URL.
+
+**Exemple `index.html` minimal pour la version modulaire :**
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RDSP Chatbot</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header><h1>RDSP Chatbot <span class="canada-flag">🇨🇦</span></h1></header>
+
+    <div class="language-toggle">
+      <button id="toggleLang">FR / EN</button>
+    </div>
+
+    <div class="chat-container" id="chatBox"></div>
+
+    <div class="suggestions">
+      <p id="suggestionText">Essayez ces questions :</p>
+      <div class="suggestion-buttons"></div>
+    </div>
+
+    <div class="input-area">
+      <input id="userInput" placeholder="Posez votre question sur le RDSP..." />
+      <button id="sendButton">Envoyer</button>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
+```
+
+---
+
+## 🔧 Configuration API
+
+Les deux UI consomment une **API HTTP POST** (par défaut `/api/chat`).  
+Mise à jour à faire :
+
+- **Single-file** : dans `chat interface.html`, modifier `API_URL` (constante JS) si vous changez de domaine (ngrok, localhost, etc.). :contentReference[oaicite:5]{index=5}  
+- **Modulaire** : dans `script.js`, adapter `API_URL` et, si besoin, la logique d’envoi `{ question, lang }`. :contentReference[oaicite:6]{index=6}
+
+**Contrat attendu :**
+```http
+POST /api/chat
+Content-Type: application/json
+
+{ "question": "Qu'est-ce que le RDSP ?", "lang": "fr" }  # "lang" optionnel
+```
+Réponse :
+```json
+{ "response": "Le RDSP est..." }
+```
+
+---
+
+## 🧠 Notebook (`main.ipynb`)
+
+Le notebook contient la logique expérimentale : préparation, règles/ML simples de QA, et jeux d’essai.  
+Recommandations :
+- factoriser la logique de réponse en une fonction `answer(question: str, lang: str | None) -> str`;
+- sauvegarder les artefacts (vecteurs/modèle) pour les charger en API.
+
+Lancement Jupyter :
+```bash
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/Mac
+# source .venv/bin/activate
+pip install -U pip jupyter
+jupyter notebook
+```
+
+---
+
+## 🧩 Exemple de backend (Flask)
+
+```python
+# app.py
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # pour tests locaux
+
+def answer(question: str, lang: str | None = None) -> str:
+    # TODO: brancher la logique du notebook (chargement modèle / règles)
+    if not question:
+        return "Posez-moi une question sur le RDSP."
+    prefix = "[FR]" if (lang or "fr").lower().startswith("fr") else "[EN]"
+    return f"{prefix} Demo: vous avez demandé « {question} »."
+
+@app.post("/api/chat")
+def chat():
+    data = request.get_json(silent=True) or {}
+    q = data.get("question", "")
+    lang = data.get("lang")
+    return jsonify({"response": answer(q, lang)})
+```
+
+Démarrage :
+```bash
+pip install flask flask-cors
+python app.py
+```
+
+---
+
+## 🧩 Alternative backend (FastAPI)
 
 ```python
 # app.py
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI()
-
-# TODO: importer votre pipeline depuis le notebook exporté (pickle/pt)
-#       ou refactoriser la logique en module Python
-def answer(question: str) -> str:
-    # placeholder: branchez ici votre vraie fonction de réponse
-    return f"Vous avez demandé: {question}. (Réponse de démonstration)"
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+)
 
 class Query(BaseModel):
-    message: str
+    question: str
+    lang: str | None = None
 
-@app.post("/chat")
+def answer(question: str, lang: str | None = None) -> str:
+    if not question:
+        return "Posez-moi une question sur le RDSP."
+    prefix = "[FR]" if (lang or "fr").lower().startswith("fr") else "[EN]"
+    return f"{prefix} Demo: vous avez demandé « {question} »."
+
+@app.post("/api/chat")
 def chat(q: Query):
-    return {"reply": answer(q.message)}
+    return {"response": answer(q.question, q.lang)}
 ```
 
 Démarrage :
-
 ```bash
-pip install fastapi uvicorn pydantic
+pip install fastapi uvicorn pydantic "uvicorn[standard]"
 uvicorn app:app --reload --port 8000
 ```
 
-Dans `script.js`, remplacez l’envoi local par un `fetch("http://127.0.0.1:8000/chat", { method: "POST", ... })` pour recevoir la vraie réponse du backend.
 
 ---
 
-## 🖥️ Interface web
+## 🧪 Tests rapides
 
-- `chat interface.html` : structure de la page et conteneur des messages.
-- `styles.css` : styles (bulles, mise en page, responsive).
-- `script.js` : gestion des entrées utilisateur et rendu des réponses.
+- **Sanity check** dans le notebook : liste de questions→réponses attendues.  
+- **Smoke test API** :
+  ```bash
+  curl -X POST http://127.0.0.1:8000/api/chat \
+       -H "Content-Type: application/json" \
+       -d '{"question":"What is RDSP?","lang":"en"}'
+  ```
 
-Pour un confort dev, vous pouvez servir les fichiers statiques avec un petit serveur local :
 
-```bash
-# Python 3
-python -m http.server 5500
-# puis ouvrir http://127.0.0.1:5500/chat%20interface.html
-```
 
 ---
 
-## 🔬 Évaluation & Jeux d’essai
+## 🔒 Notes & bonnes pratiques
 
-Ajoutez dans le notebook un petit **jeu de test** (questions cibles → réponses attendues) pour mesurer :
-
-- Exact match / Similarité (cosine) / Score d’intent
-- Taux de fallback (“désolé, je n’ai pas compris”)
-- Temps de réponse
-
-Conservez quelques exemples concrets dans une cellule pour des *sanity checks* reproductibles.
+- Activer **CORS** pour le dev local.  
+- Ne pas exposer une clé privée côté front.  
+- Valider/limiter la taille d’entrée côté API.  
+- Logger les erreurs API.
 
 ---
-
-## 🛠️ Personnalisation
-
-- **Ajouter des intents/FAQ** : enrichir le jeu d’appariement questions ↔ réponses.
-- **Changer la vectorisation** : TF-IDF → embeddings (`sentence-transformers`) si nécessaire.
-- **Stratégie de réponse** : prioriser intent > retrieval > fallback.
-- **Internationalisation** : détecter la langue et router vers le bon pipeline.
-
----
-
-
 
 ## 🗺️ Roadmap
 
-- [ ] Extraire la logique du notebook vers un module Python (`src/`).
-- [ ] Ajouter `requirements.txt` et `Dockerfile`.
-- [ ] Brancher l’UI à une API réelle (FastAPI).
-- [ ] Évaluer un mode **RAG** (index + embeddings) sur documents métier.
-- [ ] Tests unitaires sur la fonction `answer`.
+- [ ] Extraire la logique NLP du notebook vers `src/`.
+- [ ] Brancher réellement l’UI à l’API (`answer()`).
+- [ ] Ajout d’un mode **RAG** (embeddings + index RDSP).
+- [ ] Jeux d’essai + métriques (EM, F1/accuracy intent, temps de réponse).
 
 ---
 
-## 🤝 Contribuer
+## 🔗 Références du code UI
 
-1. Fork
-2. Créer une branche : `git checkout -b feature/ma-feature`
-3. Commit : `git commit -m "feat: description"`
-4. Push : `git push origin feature/ma-feature`
-5. Ouvrir une PR
-
----
-
-
-
-## 📚 Références
-
-- Structure et fichiers du dépôt : `main.ipynb`, `chat interface.html`, `script.js`, `styles.css`, `reei.pdf`.
-- La répartition des langages indique une majorité Jupyter Notebook.
-
+- UI riche (single-file) : gestion multi-discussions, thème, FAQ, `API_URL`, POST JSON → `response`. :contentReference[oaicite:7]{index=7}  
+- UI modulaire : `API_URL`, bascule FR/EN, suggestions, DOM ids (`chatBox`, `userInput`, `toggleLang`, etc.). :contentReference[oaicite:8]{index=8}  
+- Styles de la version modulaire (palette, layout, responsive). :contentReference[oaicite:9]{index=9}
